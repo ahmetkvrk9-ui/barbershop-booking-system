@@ -16,6 +16,12 @@
 
 # Berber paneli: önbelleğe alınmaz, arama motorlarında çıkmaz.
 [[headers]]
+  for = "/management.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
   for = "/yonetim.html"
   [headers.values]
     Cache-Control = "no-cache"
