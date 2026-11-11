@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Randevu Yönetimi</title>
+    <link rel="manifest" href="yonetim.webmanifest">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#0f0f0f">
+    <!-- QR kod kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f0f0f; color: #f1f1f1; line-height: 1.5; padding: 16px; }
+        .kutu { max-width: 560px; margin: 0 auto; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; }
+        h1 { color: #ffc107; font-size: 1.3rem; margin-bottom: 14px; }
+        label { display: block; font-size: 0.85rem; color: #ccc; margin: 10px 0 4px; }
+        input { width: 100%; padding: 11px; border: 1px solid #444; background: #262626; color: #fff; border-radius: 8px; font-size: 1rem; }
+        button { padding: 10px 14px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; color: #fff; background: #333; }
+        button.ana { background: #25d366; width: 100%; margin-top: 14px; padding: 13px; font-size: 1.05rem; }
+        button.sil { background: #b3261e; }
+        .gizli { display: none !important; }
+        .ust { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .filtre { display: flex; gap: 8px; align-items: end; margin-bottom: 14px; }
+        .filtre > div { flex: 1; min-width: 0; }
+        .gun { color: #ffc107; font-weight: bold; margin: 16px 0 6px; border-bottom: 1px solid #333; padding-bottom: 4px; text-transform: capitalize; }
+        .kart { background: #222; border-left: 4px solid #ffc107; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+        .kart .saat { font-weight: bold; font-size: 1.05rem; }
+        .kart .alt { color: #aaa; font-size: 0.85rem; }
+        .islem { display: flex; gap: 8px; margin-top: 8px; }
+        .islem a, .islem button { flex: 1; text-align: center; text-decoration: none; padding: 9px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; color: #fff; }
+        .islem a { background: #25d366; }
+        .mesaj { color: #ff8a80; font-size: 0.9rem; margin-top: 10px; }
+        .mesaj.iyi { color: #7ee787; }
+        .sekmeler { display: flex; gap: 8px; margin-bottom: 14px; }
+        .sekmeler button { flex: 1; background: #262626; border: 1px solid #444; }
+        .sekmeler button.aktif { background: #ffc107; color: #111; border-color: #ffc107; }
+        .bolum-baslik { color: #ffc107; font-weight: bold; margin: 18px 0 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .satir { display: grid; grid-template-columns: 1.2fr 0.6fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
+        .satir.hizmet { grid-template-columns: 1.4fr 1fr 1fr; }
+        .satir input[type="checkbox"] { width: 20px; height: 20px; accent-color: #ffc107; }
+        .satir input, .satir select { padding: 8px; font-size: 0.95rem; width: 100%; min-width: 0; }
+        select { padding: 11px; border: 1px solid #444; background: #262626; color: #fff; border-radius: 8px; font-size: 1rem; }
+        .etiketler { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .etiket { background: #222; border: 1px solid #444; border-radius: 999px; padding: 4px 10px; font-size: 0.85rem; cursor: pointer; }
+        .etiket:hover { border-color: #b3261e; }
+        .ipucu { font-size: 0.8rem; color: #888; margin-top: 6px; }
+        .bos { color: #888; padding: 10px 0; }
+        .hizli { display: flex; gap: 8px; margin-bottom: 12px; }
+        .hizli button { flex: 1; background: #262626; border: 1px solid #444; }
+        .hizli button.aktif { background: #ffc107; color: #111; border-color: #ffc107; }
+        .qr-alani { text-align: center; margin-bottom: 10px; }
+        .qr-alani canvas { background: #fff; border-radius: 8px; padding: 6px; max-width: 100%; }
+        .qr-alani .link { font-size: 0.8rem; color: #aaa; word-break: break-all; margin: 6px 0; }
+        button.mavi { background: #4285F4; }
+        button.turuncu { background: #e67e22; }
+        .kart.gelmedi { border-left-color: #b3261e; }
+        .kart .etiket-gelmedi { background: #b3261e; color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 0.75rem; margin-left: 6px; vertical-align: middle; }
+        .kart .uyari { color: #ffb74d; font-size: 0.85rem; margin-top: 4px; }
+        #ustaFiltre { width: 100%; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+<div class="kutu">
+    <div id="giris">
+        <h1>Berber girişi</h1>
+        <label for="eposta">E-posta</label>
+        <input id="eposta" type="email" autocomplete="username">
+        <label for="sifre">Şifre</label>
+        <input id="sifre" type="password" autocomplete="current-password">
+        <button class="ana" id="girisBtn">Giriş yap</button>
+        <p class="mesaj" id="girisMesaj"></p>
+    </div>
+
+    <div id="panel" class="gizli">
+        <div class="ust"><h1 id="baslik">Berber paneli</h1><button id="cikisBtn">Çıkış</button></div>
+        <div class="sekmeler">
+            <button id="sekmeRandevu" class="aktif">Randevular</button>
+            <button id="sekmeAyar">Ayarlar</button>
+        </div>
+
+        <div id="randevuBolumu">
+            <div class="hizli">
+                <button type="button" data-hizli="bugun">Bugün</button>
+                <button type="button" data-hizli="yarin">Yarın</button>
+                <button type="button" data-hizli="hafta">7 Gün</button>
+            </div>
+            <div class="filtre">
+                <div><label for="bas">Başlangıç</label><input id="bas" type="date"></div>
+                <div><label for="son">Bitiş</label><input id="son" type="date"></div>
+                <button id="yenileBtn">Göster</button>
+            </div>
+            <select id="ustaFiltre" class="gizli" aria-label="Usta"></select>
+            <div id="liste"></div>
+            <p class="mesaj" id="panelMesaj"></p>
+        </div>
+
+        <div id="ayarBolumu" class="gizli">
+            <div class="bolum-baslik">Çalışma saatleri</div>
+            <div id="saatSatirlari"></div>
+
+            <div class="bolum-baslik">Tatil / kapalı günler</div>
+            <div class="filtre">
+                <div><input id="tatilTarih" type="date"></div>
+                <button id="tatilEkleBtn">Ekle</button>
+            </div>
+            <div class="etiketler" id="tatiller"></div>
+            <p class="ipucu">Bir tarihe dokunursan listeden çıkar.</p>
+
+            <div class="bolum-baslik">İşlemler (fiyat ve süre)</div>
+            <div id="hizmetSatirlari"></div>
+            <p class="ipucu">Süre 60 dk ise o işlem iki saat dilimini birden kapatır.</p>
+
+            <div class="bolum-baslik">Ustalar</div>
+            <div class="filtre">
+                <div><input id="ustaAd" type="text" maxlength="40" placeholder="Usta adı (örn. Ahmed)"></div>
+                <button id="ustaEkleBtn">Ekle</button>
+            </div>
+            <div class="etiketler" id="ustalar"></div>
+            <p class="ipucu">Tek usta çalışıyorsa boş bırakın. 2 veya daha fazla usta eklenince müşteri sitesinde "Berber seçin" çıkar ve her ustanın takvimi ayrı olur. Bir isme dokunursan listeden çıkar; o ustanın alınmış randevuları silinmez. Kaydet'e basmayı unutmayın.</p>
+
+            <div class="bolum-baslik">Mağaza QR kodu</div>
+            <div class="qr-alani">
+                <canvas id="qrCanvas"></canvas>
+                <p class="link" id="qrLink"></p>
+                <button type="button" class="mavi" id="qrIndirBtn">QR kodu indir</button>
+                <p class="ipucu">Yazdırıp tezgaha ya da cama as; müşteri okutunca randevu sayfası açılır.</p>
+            </div>
+
+            <button class="ana" id="ayarKaydetBtn">Kaydet</button>
+            <p class="mesaj" id="ayarMesaj"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Müşteri sayfasındaki (index.html) CONFIG.depo ile AYNI değerler:
+    const AYAR = {
+        isim: "Kıvrak Berber",
+        url: "https://gfalujlrrkwirpzqmmkv.supabase.co",       // https://XXXX.supabase.co
+        anonKey: "sb_publishable_rfx_CKNHeGn87nKE1Lz0ig__FCPDA8K",   // anon public anahtarı
+        slotDakika: 30,
+        ulkeKodu: "32", // 0 ile başlayan yerel numaralar için (Belçika = 32)
+        siteUrl: "https://melodic-cajeta-1e46d1.netlify.app" // müşteri sitesinin adresi (QR kod buna gider)
+    };
+
+    const HATIRLATMA = {
+        tr: function (ad, tarih, saat) { return "Merhaba " + ad + ", " + AYAR.isim + " randevunuzu hatırlatırız: " + tarih + " saat " + saat + ". Gelemeyecekseniz lütfen haber verin."; },
+        fr: function (ad, tarih, saat) { return "Bonjour " + ad + ", rappel de votre rendez-vous chez " + AYAR.isim + " : " + tarih + " à " + saat + ". Si vous ne pouvez pas venir, merci de nous prévenir."; },
+        en: function (ad, tarih, saat) { return "Hello " + ad + ", a reminder of your appointment at " + AYAR.isim + ": " + tarih + " at " + saat + ". If you cannot make it, please let us know."; },
+        nl: function (ad, tarih, saat) { return "Hallo " + ad + ", herinnering aan uw afspraak bij " + AYAR.isim + ": " + tarih + " om " + saat + ". Kunt u niet komen, laat het ons dan weten."; }
+    };
+
+    const $ = function (id) { return document.getElementById(id); };
+    const pad = function (n) { return String(n).padStart(2, "0"); };
+    const tarihStr = function (d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+    const base = function () { return AYAR.url.replace(/\/$/, ""); };
+
+    const LOC = { tr: "tr-TR", fr: "fr-BE", en: "en-GB", nl: "nl-BE" };
+    function tarihYaz(t, dil) {
+        var p = String(t).split("-");
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        return new Intl.DateTimeFormat(LOC[dil] || LOC.tr, { weekday: "long", day: "numeric", month: "long" }).format(d);
+    }
+
+    let oturum = null;
+    try { oturum = JSON.parse(sessionStorage.getItem("berber_oturum") || "null"); } catch (e) {}
+
+    // Yeni tip "sb_publishable_..." anahtarı JWT değildir; Authorization başlığına konmaz.
+    // Giriş yapılmışsa berberin oturum jetonu gider.
+    function basliklar() {
+        var h = { "apikey": AYAR.anonKey, "Content-Type": "application/json" };
+        if (oturum && oturum.access_token) h["Authorization"] = "Bearer " + oturum.access_token;
+        return h;
+    }
+
+    // Süresi dolan oturum jetonunu (1 saat) yenileme jetonuyla sessizce yeniler
+    async function oturumYenile() {
+        if (!oturum || !oturum.refresh_token) return false;
+        try {
+            var r = await fetch(base() + "/auth/v1/token?grant_type=refresh_token", {
+                method: "POST",
+                headers: { "apikey": AYAR.anonKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh_token: oturum.refresh_token })
+            });
+            if (!r.ok) return false;
+            var yeni = await r.json();
+            oturum = { access_token: yeni.access_token, refresh_token: yeni.refresh_token || oturum.refresh_token };
+            try { sessionStorage.setItem("berber_oturum", JSON.stringify(oturum)); } catch (e) {}
+            return true;
+        } catch (e) { return false; }
+    }
+
+    // Giriş gerektiren istekler: 401 gelirse bir kez yenileyip tekrar dener
+    async function api(url, opts, ek) {
+        opts = opts || {};
+        opts.headers = Object.assign(basliklar(), ek || {});
+        var r = await fetch(url, opts);
+        if (r.status === 401 && await oturumYenile()) {
+            opts.headers = Object.assign(basliklar(), ek || {});
+            r = await fetch(url, opts);
+        }
+        return r;
+    }
+
+    function oturumBitti() {
+        cikis();
+        $("girisMesaj").textContent = "Oturum süresi doldu, lütfen tekrar giriş yapın.";
+    }
+
+    async function giris() {
+        $("girisMesaj").textContent = "";
+        try {
+            var r = await fetch(base() + "/auth/v1/token?grant_type=password", {
+                method: "POST",
+                headers: { "apikey": AYAR.anonKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ email: $("eposta").value.trim(), password: $("sifre").value })
+            });
+            if (r.status === 400) { $("girisMesaj").textContent = "E-posta veya şifre hatalı."; return; }
+            if (!r.ok) { $("girisMesaj").textContent = "Giriş hatası (" + r.status + "): " + (await r.text()).slice(0, 200); return; }
+            oturum = await r.json();
+            try { sessionStorage.setItem("berber_oturum", JSON.stringify({ access_token: oturum.access_token, refresh_token: oturum.refresh_token })); } catch (e) {}
+            goster();
+        } catch (e) {
+            $("girisMesaj").textContent = "Hata: " + (e && e.message ? e.message : e);
+        }
+    }
+
+    function cikis() {
+        oturum = null;
+        try { sessionStorage.removeItem("berber_oturum"); } catch (e) {}
+        $("panel").classList.add("gizli"); $("giris").classList.remove("gizli");
+    }
+
+    function telTemizle(t) {
+        var s = String(t).trim();
+        var rakam = s.replace(/\D/g, "");
+        if (s.indexOf("+") === 0) return rakam;
+        if (rakam.indexOf("00") === 0) return rakam.slice(2);
+        if (rakam.indexOf("0") === 0) return AYAR.ulkeKodu + rakam.slice(1);
+        return rakam;
+    }
+
+    function hizmetAdi(id) {
+        var h = VARSAYILAN.hizmetler.find(function (q) { return q.id === id; });
+        return h ? h.ad : id;
+    }
+
+    async function yukle() {
+        $("panelMesaj").textContent = "";
+        if (!$("bas").value || !$("son").value || $("bas").value > $("son").value) {
+            $("panelMesaj").textContent = "Başlangıç ve bitiş tarihini seç (başlangıç bitişten önce olsun).";
+            return;
+        }
+        var url = base() + "/rest/v1/randevular?select=*&slot_date=gte." + $("bas").value + "&slot_date=lte." + $("son").value + "&order=slot_date,slot_time";
+        var r = await api(url);
+        if (r.status === 401) { oturumBitti(); return; }
+        if (!r.ok) { $("panelMesaj").textContent = "Liste alınamadı (" + r.status + "): " + (await r.text()).slice(0, 200); return; }
+        var satirlar = await r.json();
+        await gelmeyenYukle();
+        var filtre = ayar.berberler.length >= 2 ? $("ustaFiltre").value : "";
+        if (filtre) satirlar = satirlar.filter(function (s) { return ustaId(s.berber) === filtre; });
+        var bugun = tarihStr(new Date());
+        // aynı grup = tek randevu (uzun işlem birden çok slot kapatır)
+        var gruplar = {}, sira = [];
+        satirlar.forEach(function (s) {
+            if (!gruplar[s.grup]) { gruplar[s.grup] = { ilk: s, adet: 0 }; sira.push(s.grup); }
+            gruplar[s.grup].adet++;
+        });
+        var liste = $("liste"); liste.textContent = "";
+        if (!gelmeyen.destek) {
+            var not = document.createElement("p"); not.className = "ipucu";
+            not.textContent = "\"Gelmedi\" düğmesi için yeni supabase.sql dosyasını Supabase'de bir kez çalıştırın (README > Güncelleme).";
+            liste.appendChild(not);
+        }
+        if (!sira.length) { var b = document.createElement("p"); b.className = "bos"; b.textContent = "Bu aralıkta randevu yok."; liste.appendChild(b); return; }
+        var sonGun = "";
+        sira.forEach(function (g) {
+            var s = gruplar[g].ilk, adet = gruplar[g].adet;
+            if (s.slot_date !== sonGun) {
+                sonGun = s.slot_date;
+                var p = s.slot_date.split("-");
+                var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+                var h = document.createElement("div"); h.className = "gun";
+                h.textContent = new Intl.DateTimeFormat("tr-TR", { weekday: "long", day: "numeric", month: "long" }).format(d);
+                liste.appendChild(h);
+            }
+            var tel = telTemizle(s.telefon);
+            var isaretli = !!gelmeyen.var[gelmeyenAnahtar(tel, s.slot_date, s.slot_time)];
+            var onceki = (gelmeyen.say[tel] || 0) - (isaretli ? 1 : 0);
+            var kart = document.createElement("div"); kart.className = "kart" + (isaretli ? " gelmedi" : "");
+            var saat = document.createElement("div"); saat.className = "saat";
+            saat.textContent = s.slot_time + " · " + s.ad;
+            if (isaretli) { var et = document.createElement("span"); et.className = "etiket-gelmedi"; et.textContent = "Gelmedi"; saat.appendChild(et); }
+            var alt = document.createElement("div"); alt.className = "alt";
+            alt.textContent = (ayar.berberler.length >= 2 ? "✂️ " + ustaAdi(s.berber) + " · " : "") + hizmetAdi(s.hizmet) + " · " + (adet * AYAR.slotDakika) + " dk · " + s.telefon;
+            kart.appendChild(saat); kart.appendChild(alt);
+            if (onceki > 0) {
+                var uy = document.createElement("div"); uy.className = "uyari";
+                uy.textContent = "⚠ Bu müşteri son 6 ayda " + onceki + " kez randevusuna gelmedi.";
+                kart.appendChild(uy);
+            }
+            var islem = document.createElement("div"); islem.className = "islem";
+            if (s.slot_date >= bugun) {
+                var wa = document.createElement("a");
+                var metin = (HATIRLATMA[s.dil] || HATIRLATMA.tr)(s.ad, tarihYaz(s.slot_date, s.dil), s.slot_time);
+                wa.href = "https://wa.me/" + tel + "?text=" + encodeURIComponent(metin);
+                wa.target = "_blank"; wa.rel = "noopener"; wa.textContent = "WhatsApp hatırlat";
+                islem.appendChild(wa);
+            }
+            if (gelmeyen.destek && s.slot_date <= bugun) {
+                var gb = document.createElement("button");
+                gb.className = isaretli ? "" : "turuncu";
+                gb.textContent = isaretli ? "Geldi (düzelt)" : "Gelmedi";
+                gb.addEventListener("click", function () { gelmediIsaretle(s, tel, !isaretli, gb); });
+                islem.appendChild(gb);
+            }
+            var sil = document.createElement("button"); sil.className = "sil"; sil.textContent = s.slot_date < bugun ? "Sil" : "İptal et";
+            sil.addEventListener("click", function () { iptal(g, s.ad); });
+            islem.appendChild(sil);
+            kart.appendChild(islem);
+            liste.appendChild(kart);
+        });
+    }
+
+    /* ---------------- Gelmeyen müşteriler ---------------- */
+    // say: { telefon: adet }, var: { "telefon|tarih saat": true }. destek=false: tablo henüz yok (eski SQL)
+    let gelmeyen = { destek: true, say: {}, var: {} };
+    function gelmeyenAnahtar(tel, tarih, saat) { return tel + "|" + tarih + " " + saat; }
+    async function gelmeyenYukle() {
+        gelmeyen = { destek: false, say: {}, var: {} };
+        try {
+            var r = await api(base() + "/rest/v1/gelmeyenler?select=telefon,slot_date,slot_time");
+            if (!r.ok) return;
+            gelmeyen.destek = true;
+            (await r.json()).forEach(function (x) {
+                gelmeyen.say[x.telefon] = (gelmeyen.say[x.telefon] || 0) + 1;
+                gelmeyen.var[gelmeyenAnahtar(x.telefon, x.slot_date, x.slot_time)] = true;
+            });
+        } catch (e) { /* bağlantı yoksa düğme görünmez */ }
+    }
+    async function gelmediIsaretle(s, tel, gelmedi, btn) {
+        btn.disabled = true;
+        var r;
+        if (gelmedi) {
+            r = await api(base() + "/rest/v1/gelmeyenler", {
+                method: "POST",
+                body: JSON.stringify({ telefon: tel, ad: s.ad, slot_date: s.slot_date, slot_time: s.slot_time, berber: s.berber || "" })
+            }, { "Prefer": "return=minimal" });
+            if (r.status === 409) r = { ok: true, status: 201 }; // zaten işaretli
+        } else {
+            r = await api(base() + "/rest/v1/gelmeyenler?telefon=eq." + encodeURIComponent(tel) + "&slot_date=eq." + s.slot_date + "&slot_time=eq." + encodeURIComponent(s.slot_time), { method: "DELETE" });
+        }
+        if (r.status === 401) { oturumBitti(); return; }
+        if (!r.ok) { btn.disabled = false; $("panelMesaj").textContent = "Kaydedilemedi (" + r.status + ")."; return; }
+        yukle();
+    }
+
+    /* ---------------- Ustalar ---------------- */
+    // Usta bilgisi olmayan eski randevular ilk ustaya sayılır (müşteri sitesiyle aynı kural)
+    function ustaId(id) { return id || (ayar.berberler[0] ? ayar.berberler[0].id : ""); }
+    function ustaAdi(id) {
+        var b = ayar.berberler.find(function (q) { return q.id === ustaId(id); });
+        return b ? b.ad : (id || "?") + " (listede yok)";
+    }
+    function ustaFiltreCiz() {
+        var f = $("ustaFiltre"), onceki = f.value;
+        f.textContent = "";
+        var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Tüm ustalar"; f.appendChild(o0);
+        ayar.berberler.forEach(function (b) { var o = document.createElement("option"); o.value = b.id; o.textContent = b.ad; f.appendChild(o); });
+        if (ayar.berberler.some(function (b) { return b.id === onceki; })) f.value = onceki;
+        f.classList.toggle("gizli", ayar.berberler.length < 2);
+    }
+    function ustaCiz() {
+        var t = $("ustalar"); t.textContent = "";
+        ayar.berberler.forEach(function (b) {
+            var e = document.createElement("span"); e.className = "etiket"; e.textContent = b.ad + " ✕";
+            e.addEventListener("click", function () {
+                if (!confirm(b.ad + " listeden çıkarılsın mı? (Kaydet'e basınca geçerli olur)")) return;
+                ayar.berberler = ayar.berberler.filter(function (x) { return x.id !== b.id; });
+                ustaCiz();
+            });
+            t.appendChild(e);
+        });
+    }
+    function ustaEkle() {
+        var ad = $("ustaAd").value.trim();
+        if (!ad) return;
+        var kok = ad.toLocaleLowerCase("tr").replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c")
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "usta";
+        var id = kok, n = 2;
+        while (ayar.berberler.some(function (b) { return b.id === id; })) id = kok + "-" + (n++);
+        ayar.berberler.push({ id: id, ad: ad.slice(0, 40) });
+        $("ustaAd").value = "";
+        ustaCiz();
+    }
+
+    /* ---------------- Hızlı tarih filtresi ---------------- */
+    function hizliTarih(tip) {
+        var t = new Date();
+        var bas = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+        var son = new Date(bas);
+        if (tip === "yarin") { bas.setDate(bas.getDate() + 1); son = new Date(bas); }
+        else if (tip === "hafta") { son.setDate(son.getDate() + 6); }
+        $("bas").value = tarihStr(bas);
+        $("son").value = tarihStr(son);
+        hizliIsaretle(tip);
+        yukle();
+    }
+    function hizliIsaretle(tip) {
+        document.querySelectorAll("[data-hizli]").forEach(function (b) { b.classList.toggle("aktif", b.dataset.hizli === tip); });
+    }
+
+    /* ---------------- QR kod ---------------- */
+    function qrOlustur() {
+        $("qrLink").textContent = AYAR.siteUrl;
+        if (!window.QRCode) { $("qrLink").textContent = "QR kütüphanesi yüklenemedi (internet bağlantısını kontrol et)."; return; }
+        QRCode.toCanvas($("qrCanvas"), AYAR.siteUrl, { width: 220, margin: 2, color: { dark: "#000000", light: "#ffffff" } }, function (e) {
+            if (e) console.error(e);
+        });
+    }
+    function qrIndir() {
+        var a = document.createElement("a");
+        a.download = AYAR.isim.toLowerCase().replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-qr.png";
+        a.href = $("qrCanvas").toDataURL("image/png");
+        document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    async function iptal(grup, ad) {
+        if (!confirm(ad + " randevusu silinsin mi?")) return;
+        var r = await api(base() + "/rest/v1/randevular?grup=eq." + encodeURIComponent(grup), { method: "DELETE" });
+        if (r.status === 401) { oturumBitti(); return; }
+        if (!r.ok) { $("panelMesaj").textContent = "Silinemedi (" + r.status + ")."; return; }
+        yukle();
+    }
+
+    function goster() {
+        $("giris").classList.add("gizli"); $("panel").classList.remove("gizli");
+        var t = new Date();
+        $("bas").value = tarihStr(t);
+        $("son").value = tarihStr(new Date(t.getFullYear(), t.getMonth(), t.getDate() + 7));
+        hizliIsaretle("");
+        sekmeGoster("randevu");
+        qrOlustur();
+        // Usta adları ayarlardan gelir: önce ayarlar, sonra liste
+        ayarYukle().then(yukle);
+    }
+
+    /* ---------------- Ayarlar sekmesi ---------------- */
+    // index.html > CONFIG ile aynı varsayılanlar (ayar kaydedilene kadar bunlar gösterilir)
+    const GUNLER = [[1, "Pazartesi"], [2, "Salı"], [3, "Çarşamba"], [4, "Perşembe"], [5, "Cuma"], [6, "Cumartesi"], [0, "Pazar"]];
+    const VARSAYILAN = {
+        saatler: { 0: null, 1: ["09:00", "20:00"], 2: ["09:00", "20:00"], 3: ["09:00", "20:00"], 4: ["09:00", "20:00"], 5: ["09:00", "20:00"], 6: ["09:00", "20:00"] },
+        kapaliGunler: [],
+        berberler: [],   // [{ id, ad }]; index.html > CONFIG.berberler ile aynı biçim
+        hizmetler: [
+            { id: "sac", ad: "Saç Kesimi", fiyat: 20, sure: 30 },
+            { id: "sakal", ad: "Sakal Tıraşı", fiyat: 12, sure: 30 },
+            { id: "combo", ad: "Saç + Sakal Combo", fiyat: 30, sure: 60 },
+            { id: "cocuk", ad: "Çocuk Kesimi", fiyat: 15, sure: 30 }
+        ]
+    };
+    let ayar = JSON.parse(JSON.stringify(VARSAYILAN));
+
+    function sekmeGoster(ad) {
+        $("randevuBolumu").classList.toggle("gizli", ad !== "randevu");
+        $("ayarBolumu").classList.toggle("gizli", ad !== "ayar");
+        $("sekmeRandevu").classList.toggle("aktif", ad === "randevu");
+        $("sekmeAyar").classList.toggle("aktif", ad === "ayar");
+    }
+
+    async function ayarYukle() {
+        try {
+            var r = await api(base() + "/rest/v1/ayarlar?id=eq.1&select=veri");
+            if (r.ok) {
+                var rows = await r.json();
+                var v = rows.length ? rows[0].veri : null;
+                if (v && v.saatler) for (var g = 0; g < 7; g++) if (g in v.saatler) ayar.saatler[g] = v.saatler[g];
+                if (v && Array.isArray(v.kapaliGunler)) ayar.kapaliGunler = v.kapaliGunler.slice();
+                if (v && Array.isArray(v.berberler)) ayar.berberler = v.berberler.filter(function (b) { return b && b.id && b.ad; }).slice();
+                if (v && Array.isArray(v.hizmetler)) v.hizmetler.forEach(function (x) {
+                    var h = ayar.hizmetler.find(function (q) { return q.id === x.id; });
+                    if (h) { h.fiyat = x.fiyat; h.sure = x.sure; }
+                });
+            }
+        } catch (e) { /* varsayılanlarla devam */ }
+        ayarCiz();
+    }
+
+    function ayarCiz() {
+        var s = $("saatSatirlari"); s.textContent = "";
+        GUNLER.forEach(function (g) {
+            var h = ayar.saatler[g[0]];
+            var satir = document.createElement("div"); satir.className = "satir";
+            var ad = document.createElement("span"); ad.textContent = g[1];
+            var acik = document.createElement("input"); acik.type = "checkbox"; acik.checked = !!h; acik.dataset.gun = g[0]; acik.className = "acik";
+            var a = document.createElement("input"); a.type = "time"; a.value = h ? h[0] : "09:00"; a.className = "acilis"; a.dataset.gun = g[0];
+            var k = document.createElement("input"); k.type = "time"; k.value = h ? h[1] : "20:00"; k.className = "kapanis"; k.dataset.gun = g[0];
+            satir.appendChild(ad); satir.appendChild(acik); satir.appendChild(a); satir.appendChild(k);
+            s.appendChild(satir);
+        });
+        tatilCiz();
+        ustaCiz();
+        ustaFiltreCiz();
+        var hs = $("hizmetSatirlari"); hs.textContent = "";
+        ayar.hizmetler.forEach(function (h) {
+            var satir = document.createElement("div"); satir.className = "satir hizmet";
+            var ad = document.createElement("span"); ad.textContent = h.ad;
+            var f = document.createElement("input"); f.type = "number"; f.min = "0"; f.max = "1000"; f.step = "0.5"; f.value = h.fiyat; f.dataset.id = h.id; f.className = "fiyat";
+            var d = document.createElement("select"); d.dataset.id = h.id; d.className = "sure";
+            var sureler = [30, 60, 90, 120];
+            if (sureler.indexOf(Number(h.sure)) === -1) { sureler.push(Number(h.sure)); sureler.sort(function (a, b) { return a - b; }); }
+            sureler.forEach(function (m) {
+                var o = document.createElement("option"); o.value = m; o.textContent = m + " dk"; if (Number(h.sure) === m) o.selected = true; d.appendChild(o);
+            });
+            satir.appendChild(ad); satir.appendChild(f); satir.appendChild(d);
+            hs.appendChild(satir);
+        });
+    }
+
+    function tatilCiz() {
+        var t = $("tatiller"); t.textContent = "";
+        ayar.kapaliGunler.slice().sort().forEach(function (d) {
+            var e = document.createElement("span"); e.className = "etiket"; e.textContent = d + " ✕";
+            e.addEventListener("click", function () {
+                ayar.kapaliGunler = ayar.kapaliGunler.filter(function (x) { return x !== d; });
+                tatilCiz();
+            });
+            t.appendChild(e);
+        });
+    }
+
+    async function ayarKaydet() {
+        var m = $("ayarMesaj"); m.className = "mesaj"; m.textContent = "";
+        var yeni = { saatler: {}, kapaliGunler: [], hizmetler: [], berberler: ayar.berberler.slice() };
+        var hata = "";
+        GUNLER.forEach(function (g) {
+            var acik = document.querySelector('.acik[data-gun="' + g[0] + '"]').checked;
+            var a = document.querySelector('.acilis[data-gun="' + g[0] + '"]').value;
+            var k = document.querySelector('.kapanis[data-gun="' + g[0] + '"]').value;
+            if (!acik) { yeni.saatler[g[0]] = null; return; }
+            if (!a || !k || a >= k) hata = g[1] + ": açılış kapanıştan önce olmalı.";
+            yeni.saatler[g[0]] = [a, k];
+        });
+        if (hata) { m.textContent = hata; return; }
+        var bugun = tarihStr(new Date());
+        yeni.kapaliGunler = ayar.kapaliGunler.filter(function (d) { return d >= bugun; });
+        ayar.hizmetler.forEach(function (h) {
+            var f = Number(document.querySelector('.fiyat[data-id="' + h.id + '"]').value);
+            var s = Number(document.querySelector('.sure[data-id="' + h.id + '"]').value);
+            if (!isFinite(f) || f < 0 || f > 1000) hata = h.ad + ": fiyat geçersiz.";
+            yeni.hizmetler.push({ id: h.id, fiyat: f, sure: s });
+        });
+        if (hata) { m.textContent = hata; return; }
+        if (yeni.berberler.length >= 2) {
+            // Veritabanı ustaları destekliyor mu? (eski supabase.sql'de "berber" sütunu yok)
+            var t = await api(base() + "/rest/v1/randevular?select=berber&limit=1");
+            if (t.status === 401) { oturumBitti(); return; }
+            if (!t.ok) { m.textContent = "Ustaları kaydetmeden önce yeni supabase.sql dosyasını Supabase'de bir kez çalıştırın (README > Güncelleme)."; return; }
+        }
+        try {
+            var r = await api(base() + "/rest/v1/ayarlar?on_conflict=id", {
+                method: "POST",
+                body: JSON.stringify([{ id: 1, veri: yeni, guncelleme: new Date().toISOString() }])
+            }, { "Prefer": "resolution=merge-duplicates,return=minimal" });
+            if (r.status === 401) { oturumBitti(); return; }
+            if (!r.ok) { m.textContent = "Kaydedilemedi (" + r.status + ")."; return; }
+            ayar.kapaliGunler = yeni.kapaliGunler;
+            ustaFiltreCiz();
+            m.className = "mesaj iyi"; m.textContent = "Kaydedildi. Müşteri sitesi yeni ayarları hemen kullanır.";
+        } catch (e) {
+            m.textContent = "Bağlantı hatası.";
+        }
+    }
+
+    $("sekmeRandevu").addEventListener("click", function () { sekmeGoster("randevu"); });
+    $("sekmeAyar").addEventListener("click", function () { sekmeGoster("ayar"); });
+    $("tatilEkleBtn").addEventListener("click", function () {
+        var v = $("tatilTarih").value;
+        if (v && ayar.kapaliGunler.indexOf(v) === -1) { ayar.kapaliGunler.push(v); tatilCiz(); }
+        $("tatilTarih").value = "";
+    });
+    $("ayarKaydetBtn").addEventListener("click", ayarKaydet);
+    $("ustaEkleBtn").addEventListener("click", ustaEkle);
+    $("ustaAd").addEventListener("keydown", function (e) { if (e.key === "Enter") ustaEkle(); });
+    $("ustaFiltre").addEventListener("change", yukle);
+
+    $("girisBtn").addEventListener("click", giris);
+    $("sifre").addEventListener("keydown", function (e) { if (e.key === "Enter") giris(); });
+    $("cikisBtn").addEventListener("click", cikis);
+    $("yenileBtn").addEventListener("click", function () { hizliIsaretle(""); yukle(); });
+    document.querySelectorAll("[data-hizli]").forEach(function (b) {
+        b.addEventListener("click", function () { hizliTarih(b.dataset.hizli); });
+    });
+    $("qrIndirBtn").addEventListener("click", qrIndir);
+    if (oturum && oturum.access_token) goster();
+</script>
+</body>
+</html>

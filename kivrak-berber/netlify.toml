@@ -1,0 +1,22 @@
+# Düz HTML sitesi: derleme yok, klasör olduğu gibi yayınlanır.
+[build]
+  publish = "."
+  command = ""
+
+# Yeni sürüm ve ayarlar hemen görünsün diye sayfalar önbelleğe alınmaz.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Berber paneli: önbelleğe alınmaz, arama motorlarında çıkmaz.
+[[headers]]
+  for = "/yonetim.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+    X-Robots-Tag = "noindex, nofollow"
